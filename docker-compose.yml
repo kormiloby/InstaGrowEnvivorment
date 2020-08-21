@@ -1,0 +1,60 @@
+version: '3.1'
+
+services:
+    runniglist_app:
+      build:
+        context: .
+        dockerfile: .docker/php-fpm/Dockerfile
+        args:
+          - INSTALL_XDEBUG=false
+      volumes:
+        - ./runniglist:/var/www
+      user: "1000:0"
+
+    runniglist_nginx:
+      build:
+        context: .
+        dockerfile: .docker/nginx/Dockerfile
+      volumes:
+        - ./runniglist:/var/www
+      ports:
+        - "80:80"
+      links:
+        - runniglist_app
+
+    runniglist_db:
+      image: mariadb:latest
+      environment:
+        MYSQL_DATABASE: runniglist_db
+        MYSQL_USER: runniglist_user
+        MYSQL_PASSWORD: secret
+        MYSQL_ROOT_PASSWORD: secret
+      volumes:
+        - runniglist_dbdata:/var/lib/mysql
+      ports:
+        - "3306:3306"
+
+#web driver containers
+    hub:
+      image: selenium/hub:4.0.0-alpha-6-20200730
+      ports:
+        - "4444:4444"
+
+    chrome:
+      image: selenium/node-chrome:4.0.0-alpha-6-20200730
+      depends_on:
+        - hub
+      links:
+        - hub
+      environment:
+        - HUB_PORT_4444_TCP_ADDR=hub
+        - HUB_PORT_4444_TCP_PORT=4444
+
+
+volumes:
+  runniglist_dbdata:
+
+networks:
+  default:
+    external:
+      name: eduk
